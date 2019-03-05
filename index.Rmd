@@ -1,0 +1,203 @@
+<br> 
+<center><img src="http://i.imgur.com/sSaOozN.png" width="500"></center>
+
+## Course: Visual Analytics for Policy and Management
+
+### Prof. José Manuel Magallanes, PhD 
+
+_____
+<a id='part1'></a>
+
+# Session 2: Visualizing Tabular data
+
+### [Multivariate Case](https://github.com/EvansDataScience/VisualAnalytics_tabularDataMulti)
+
+_____
+
+We collect multiple variables for a particular purpose, knowing that social complexity can hardly be directly explained with bivariate or univariate approaches. 
+
+However, as it is difficult to visualize information with high dimensional data; most of our data will go through some dimensionality reduction that will have a particular purpose:
+
+1. [Descriptive](#part2)
+
+2. [Inferential](#part3) 
+
+
+_____
+
+
+<a id='part2'></a>
+
+## Descriptive plots
+
+The word descriptive is used because our intention is not to go beyond the units of analysis we have.
+
+This time, I will use the [data about city safety](https://jpn.nec.com/en/global/ad/insite/download/economist/en/data_workbook_dl.html):
+
+```{r, eval=FALSE}
+library(openxlsx)
+#load data 
+link="https://github.com/EvansDataScience/data/raw/master/safeCitiesIndexAll.xlsx"
+safe=read.xlsx(link)
+
+
+#Descriptive Plugins
+library(ggplot2)
+library(psych)
+library(ggrepel)
+
+#Ineferential Plugins
+library(dotwhisker)
+library(broom)
+library(dplyr)
+library(cluster)
+```
+
+
+#data description (eventually drop)
+
+```{r, eval=FALSE}
+#data description, variable labels
+names(safe)
+```
+
+variables telling us information about the safety levels of cities in the world,  **D**_igital_, **H**_ealth_, **I**_nfrastructure_, and **P**_ersonal_ dimensions.
+
+measures of actions taken (**In**), and results (**Out**). 
+
+It is not a good idea to see the first rows, as there are too many variables. But we can use some tricky notation:
+
+None of our previous plots represent **dimensionality reduction**, and that is what is coming now.
+
+A first approach would be to use a technique called **PCA** (principal components analysis). This technique is usefull if you want to get a composite score and a ranking: 
+
+2. Request one **factor** that summarize the _variables_, and the **score** for the _cases_.
+
+You have here a way to produce scores and a ranking, then you can propose any plot from the univariate alternatives for measurements or ordinal classification. However, you must pay attention to the variables:
+
+a. Realize you have a set of variables that tell you about measures taken (all the ... _IN_ ... ones) and outcomes (.. _OUT_ ..). Make two data frames:
+
+```{r, eval=FALSE}
+#copy
+safeCopy=safe
+resultPCA=principal(safeCopy[,-1],
+                nfactors = 1,
+                scores=T,
+                normalize=T)
+#get the new index
+safeCopy$indexSafe=as.vector(factor.scores(safeCopy[,-1],resultPCA)$scores)
+
+#rescale the index # pysch has its own 'rescale'
+safeCopy$indexSafe=scales::rescale(safeCopy$indexSafe, to = c(1, 100)) 
+safeCopy$RankSafe=rank(-safeCopy$indexSafe)
+
+# IN/OUT
+positionsIN=grep("_In_", colnames(safe) )
+positionsOUT=grep("_Out_", colnames(safe) )
+
+#
+safeIN=safe[,c(1,positionsIN)]
+safeOUT=safe[,c(1,positionsOUT)]
+
+#get the rankings and composite indexes:
+
+### IN
+resultIN=principal(safeIN[,-1],
+                   nfactors = 1,
+                   scores=T,
+                   normalize=T)
+
+safeIN$indexSafeIN=as.vector(factor.scores(safeIN[,-1],resultIN)$scores)
+safeIN$indexSafeIN=scales::rescale(safeIN$indexSafeIN, 
+                                   to = c(1, 100)) 
+safeIN$RankSafeIN=rank(-safeIN$indexSafeIN)
+
+### OUT
+resultOUT=principal(safeOUT[,-1],
+                    nfactors = 1,
+                    scores=T,
+                    normalize=T)
+
+safeOUT$indexSafeOUT=as.vector(factor.scores(safeOUT[,-1],resultOUT)$scores)
+safeOUT$indexSafeOUT=scales::rescale(safeOUT$indexSafeOUT, 
+                                     to = c(1, 100)) 
+safeOUT$RankSafeOUT=rank(-safeOUT$indexSafeOUT)
+
+#merge the results
+safeIO=merge(safeIN,safeOUT)
+
+set.seed(123)
+distanceAmong <- dist(safe[,-1]) # euclidean distances between the rows
+result <- cmdscale(distanceAmong,eig=TRUE, k=2) # k is the number of dim
+
+# data frame prep:
+dim1 <- result$points[,1]
+dim2 <- result$points[,2]
+
+coordinates=data.frame(dim1,dim2,city=safe$city)
+
+# computing clusters
+result <- kmeans(safeIO[,-c(1,25,26,53,54)], # not using composites just created
+                 centers = 3) # how many clusters
+# adding the cluster
+safeIO$cluster=as.factor(result$cluster)
+```
+
+
+
+```{r, eval=FALSE}
+base <- ggplot(safeIO, aes(x= indexSafeIN, y= indexSafeOUT,
+                           label=city,
+                           color = cluster)) # cluster!!
+plot1 = base + geom_point(na.rm=TRUE) 
+
+plot1 + geom_text_repel(na.rm=TRUE,size=2) 
+
+```
+
+
+
+
+
+<a id='part3'></a>
+
+## Inferential plots
+
+In this situation, you are working with samples, and you use that information to inform about the population. Our main interest will be in **regression analysis**.
+
+
+
+```{r, eval=FALSE}
+#data prep
+cut=median(safe2$PERSONAL)
+safe2$PERSONAL_bi=ifelse(safe2$PERSONAL>cut,
+                         1,0)
+library(margins)
+margins_logit_PERSONAL = margins(logit_PERSONAL) 
+marginalSummary=summary(margins_logit_PERSONAL)
+logit_PERSONAL = glm(PERSONAL_bi~ .,
+                          data = safe2[,-c(1,5)],
+                          family = "binomial")
+digi=cplot(logit_PERSONAL, "HEALTH",draw = F)
+
+#GGPLOT
+base = ggplot(digi, aes(x = xvals)) 
+p1= base + geom_ribbon(aes(ymin = lower, ymax = upper), 
+                       fill = "grey90")
+p2 = p1 + geom_line(aes(y = yvals)) 
+p3= p2 + labs(title="Effect of HEALTH index on PERSONAL index",
+              x= "HEALTH", y="Predicted Value")
+p3 + theme_bw()
+```
+
+
+
+<span style="color:red"> Exercise:<br> Improve and or complete one descriptive and one inferential plot from this session.
+</span>
+
+_____
+
+
+[Go to table of contents.](#part1)
+
+[Back to course schedule menu](https://evansdatascience.github.io/VisualAnalytics/)
