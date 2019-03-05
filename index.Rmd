@@ -26,13 +26,6 @@ However, as it is difficult to visualize information with high dimensional data;
 _____
 
 
-<a id='part2'></a>
-
-## Descriptive plots
-
-The word descriptive is used because our intention is not to go beyond the units of analysis we have.
-
-This time, I will use the [data about city safety](https://jpn.nec.com/en/global/ad/insite/download/economist/en/data_workbook_dl.html):
 
 ```{r, eval=FALSE}
 library(openxlsx)
@@ -52,30 +45,6 @@ library(dplyr)
 library(cluster)
 ```
 
-
-#data description (eventually drop)
-
-```{r, eval=FALSE}
-#data description, variable labels
-names(safe)
-```
-
-variables telling us information about the safety levels of cities in the world,  **D**_igital_, **H**_ealth_, **I**_nfrastructure_, and **P**_ersonal_ dimensions.
-
-measures of actions taken (**In**), and results (**Out**). 
-
-It is not a good idea to see the first rows, as there are too many variables. But we can use some tricky notation:
-
-None of our previous plots represent **dimensionality reduction**, and that is what is coming now.
-
-A first approach would be to use a technique called **PCA** (principal components analysis). This technique is usefull if you want to get a composite score and a ranking: 
-
-2. Request one **factor** that summarize the _variables_, and the **score** for the _cases_.
-
-You have here a way to produce scores and a ranking, then you can propose any plot from the univariate alternatives for measurements or ordinal classification. However, you must pay attention to the variables:
-
-a. Realize you have a set of variables that tell you about measures taken (all the ... _IN_ ... ones) and outcomes (.. _OUT_ ..). Make two data frames:
-
 ```{r, eval=FALSE}
 safeCopy=safe
 resultPCA=principal(safeCopy[,-1], nfactors = 1, scores=T, normalize=T)
@@ -85,15 +54,12 @@ safeCopy$indexSafe=as.vector(factor.scores(safeCopy[,-1],resultPCA)$scores)
 #rescale the index # pysch has its own 'rescale'
 safeCopy$indexSafe=scales::rescale(safeCopy$indexSafe, to = c(1, 100)) 
 safeCopy$RankSafe=rank(-safeCopy$indexSafe)
-
 # IN/OUT
 positionsIN=grep("_In_", colnames(safe) )
 positionsOUT=grep("_Out_", colnames(safe) )
-
 #
 safeIN=safe[,c(1,positionsIN)]
 safeOUT=safe[,c(1,positionsOUT)]
-
 #get the rankings and composite indexes:
 ### IN
 resultIN=principal(safeIN[,-1],
@@ -129,22 +95,26 @@ result <- kmeans(safeIO[,-c(1,25,26,53,54)], # not using composites just created
                  centers = 3) # how many clusters
 # adding the cluster
 safeIO$cluster=as.factor(result$cluster)
+levels(safeIO$cluster)[levels(safeIO$cluster)=="1"] <- "High Reward"
+levels(safeIO$cluster)[levels(safeIO$cluster)=="2"] <- "Medium Reward"
+levels(safeIO$cluster)[levels(safeIO$cluster)=="3"] <- "Low Reward"
 ```
 
 
+<a id='part2'></a>
+## Descriptive plots
 
 ```{r }
-base <- ggplot(safeIO, aes(x= indexSafeIN, y= indexSafeOUT,
-                           label=city,
-                           color = cluster)) # cluster!!
+#ggplot
+base <- ggplot(safeIO, aes(x= indexSafeIN, y= indexSafeOUT, label=city,
+                                                            color = cluster)) 
 plot1 = base + geom_point(na.rm=TRUE) 
 
-plot1 + geom_text_repel(na.rm=TRUE,size=2) 
+plot2 = plot1 + geom_text_repel(na.rm=TRUE,size=2) + labs(title="The Effects of City Spending on Safety", x="City Rank in Safety Spending", y="City Safety Ranking", subtitle = '0-Low Rank, 100-High Rank')
+
+plot2
 
 ```
-
-
-
 
 
 <a id='part3'></a>
@@ -152,8 +122,6 @@ plot1 + geom_text_repel(na.rm=TRUE,size=2)
 ## Inferential plots
 
 In this situation, you are working with samples, and you use that information to inform about the population. Our main interest will be in **regression analysis**.
-
-
 
 ```{r }
 #data prep
@@ -173,8 +141,8 @@ base = ggplot(digi, aes(x = xvals))
 p1= base + geom_ribbon(aes(ymin = lower, ymax = upper), 
                        fill = "grey90")
 p2 = p1 + geom_line(aes(y = yvals)) 
-p3= p2 + labs(title="Effect of HEALTH index on PERSONAL index",
-              x= "HEALTH", y="Predicted Value")
+p3= p2 + labs(title="Estimated Effect of City's HEALTH index on PERSONAL index",
+              x= "HEALTH index", y="Predicted Effect on PERSONAL index")
 p3 + theme_bw()
 ```
 
