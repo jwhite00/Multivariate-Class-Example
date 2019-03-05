@@ -40,7 +40,6 @@ library(openxlsx)
 link="https://github.com/EvansDataScience/data/raw/master/safeCitiesIndexAll.xlsx"
 safe=read.xlsx(link)
 
-
 #Descriptive Plugins
 library(ggplot2)
 library(psych)
@@ -78,12 +77,8 @@ You have here a way to produce scores and a ranking, then you can propose any pl
 a. Realize you have a set of variables that tell you about measures taken (all the ... _IN_ ... ones) and outcomes (.. _OUT_ ..). Make two data frames:
 
 ```{r, eval=FALSE}
-#copy
 safeCopy=safe
-resultPCA=principal(safeCopy[,-1],
-                nfactors = 1,
-                scores=T,
-                normalize=T)
+resultPCA=principal(safeCopy[,-1], nfactors = 1, scores=T, normalize=T)
 #get the new index
 safeCopy$indexSafe=as.vector(factor.scores(safeCopy[,-1],resultPCA)$scores)
 
@@ -100,7 +95,6 @@ safeIN=safe[,c(1,positionsIN)]
 safeOUT=safe[,c(1,positionsOUT)]
 
 #get the rankings and composite indexes:
-
 ### IN
 resultIN=principal(safeIN[,-1],
                    nfactors = 1,
@@ -111,7 +105,6 @@ safeIN$indexSafeIN=as.vector(factor.scores(safeIN[,-1],resultIN)$scores)
 safeIN$indexSafeIN=scales::rescale(safeIN$indexSafeIN, 
                                    to = c(1, 100)) 
 safeIN$RankSafeIN=rank(-safeIN$indexSafeIN)
-
 ### OUT
 resultOUT=principal(safeOUT[,-1],
                     nfactors = 1,
@@ -122,20 +115,15 @@ safeOUT$indexSafeOUT=as.vector(factor.scores(safeOUT[,-1],resultOUT)$scores)
 safeOUT$indexSafeOUT=scales::rescale(safeOUT$indexSafeOUT, 
                                      to = c(1, 100)) 
 safeOUT$RankSafeOUT=rank(-safeOUT$indexSafeOUT)
-
 #merge the results
 safeIO=merge(safeIN,safeOUT)
-
 set.seed(123)
 distanceAmong <- dist(safe[,-1]) # euclidean distances between the rows
 result <- cmdscale(distanceAmong,eig=TRUE, k=2) # k is the number of dim
-
 # data frame prep:
 dim1 <- result$points[,1]
 dim2 <- result$points[,2]
-
 coordinates=data.frame(dim1,dim2,city=safe$city)
-
 # computing clusters
 result <- kmeans(safeIO[,-c(1,25,26,53,54)], # not using composites just created
                  centers = 3) # how many clusters
@@ -145,7 +133,7 @@ safeIO$cluster=as.factor(result$cluster)
 
 
 
-```{r, eval=FALSE}
+```{r }
 base <- ggplot(safeIO, aes(x= indexSafeIN, y= indexSafeOUT,
                            label=city,
                            color = cluster)) # cluster!!
@@ -167,7 +155,7 @@ In this situation, you are working with samples, and you use that information to
 
 
 
-```{r, eval=FALSE}
+```{r }
 #data prep
 cut=median(safe2$PERSONAL)
 safe2$PERSONAL_bi=ifelse(safe2$PERSONAL>cut,
