@@ -27,7 +27,7 @@ _____
 
 
 
-```{r}
+```{r results=‘hide’, warning=FALSE, message=FALSE}
 library(openxlsx)
 #load data 
 link="https://github.com/EvansDataScience/data/raw/master/safeCitiesIndexAll.xlsx"
@@ -47,7 +47,7 @@ library(dplyr)
 library(cluster)
 ```
 
-```{r}
+```{r results=‘hide’, warning=FALSE, message=FALSE}
 safeCopy=safe
 resultPCA=principal(safeCopy[,-1], nfactors = 1, scores=T, normalize=T)
 #get the new index
