@@ -27,11 +27,13 @@ _____
 
 
 
-```{r, eval=FALSE}
+```{r}
 library(openxlsx)
 #load data 
 link="https://github.com/EvansDataScience/data/raw/master/safeCitiesIndexAll.xlsx"
 safe=read.xlsx(link)
+link2="https://github.com/EvansDataScience/data/raw/master/safeCitiesIndex.xlsx"
+safe2=read.xlsx(link2)
 
 #Descriptive Plugins
 library(ggplot2)
@@ -45,7 +47,7 @@ library(dplyr)
 library(cluster)
 ```
 
-```{r, eval=FALSE}
+```{r}
 safeCopy=safe
 resultPCA=principal(safeCopy[,-1], nfactors = 1, scores=T, normalize=T)
 #get the new index
@@ -129,11 +131,12 @@ cut=median(safe2$PERSONAL)
 safe2$PERSONAL_bi=ifelse(safe2$PERSONAL>cut,
                          1,0)
 library(margins)
-margins_logit_PERSONAL = margins(logit_PERSONAL) 
-marginalSummary=summary(margins_logit_PERSONAL)
 logit_PERSONAL = glm(PERSONAL_bi~ .,
                           data = safe2[,-c(1,5)],
                           family = "binomial")
+margins_logit_PERSONAL = margins(logit_PERSONAL) 
+marginalSummary=summary(margins_logit_PERSONAL)
+
 digi=cplot(logit_PERSONAL, "HEALTH",draw = F)
 
 #GGPLOT
